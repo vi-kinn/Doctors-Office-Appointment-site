@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  labels:
+    app: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+        - name: backend
+          image: 474668414952.dkr.ecr.us-east-1.amazonaws.com/doctor-office-backend
+          resources:
+            requests:
+              cpu: "0.5"            
+              memory: "350Mi"
+            limits:
+              cpu: "1"            
+              memory: "450Mi"        
+          ports:
+          - containerPort: 5000
+         
+   

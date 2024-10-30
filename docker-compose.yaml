@@ -1,0 +1,99 @@
+name: CI/CD Pipeline for Frontend and Backend
+
+on:
+  push:
+    branches:
+      - main  # Trigger on push to the main branch
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    env:
+      BACKEND_REPO_NAME: "midterm/backend"
+      FRONTEND_REPO_NAME: "midterm/frontend"
+      BACKEND_PATH: "./auth-app-backend"
+      FRONTEND_PATH: "./auth-app-frontend"
+      IMAGE_TAG: "latest"
+
+    steps:
+      # Step 1: Check out the code
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v2.0
+        with:
+          version: 'v1.24.0' # default is latest stable
+        id: install
+  
+      # Step 2: Configure AWS credentials
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+          
+      # Step 3: Log in to Amazon ECR
+      - name: Log in to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+        with:
+          region: ${{ secrets.AWS_REGION }}
+          access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      # Step 4: Build Backend Docker Image with a simple name
+      - name: Build Backend Docker image
+        run: |
+          docker build -t ${{ env.BACKEND_REPO_NAME }} ${{ env.BACKEND_PATH }}
+
+      # Step 5: Tag the Backend Docker Image with ECR URL
+      - name: Tag Backend Docker image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        run: |
+          docker tag ${{ env.BACKEND_REPO_NAME }} $ECR_REGISTRY/${{ env.BACKEND_REPO_NAME }}:${{ env.IMAGE_TAG }}
+
+      # Step 6: Push the Backend Docker Image to ECR
+      - name: Push Backend Docker image to ECR
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        run: |
+          docker push $ECR_REGISTRY/${{ env.BACKEND_REPO_NAME }}:${{ env.IMAGE_TAG }}
+
+      # Step 7: Build Frontend Docker Image with a simple name
+      - name: Build Frontend Docker image
+        run: |
+          docker build -t ${{ env.FRONTEND_REPO_NAME }} ${{ env.FRONTEND_PATH }}
+
+      # Step 8: Tag the Frontend Docker Image with ECR URL
+      - name: Tag Frontend Docker image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        run: |
+          docker tag ${{ env.FRONTEND_REPO_NAME }} $ECR_REGISTRY/${{ env.FRONTEND_REPO_NAME }}:${{ env.IMAGE_TAG }}
+
+      # Step 9: Push the Frontend Docker Image to ECR
+      - name: Push Frontend Docker image to ECR
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        run: |
+          docker push $ECR_REGISTRY/${{ env.FRONTEND_REPO_NAME }}:${{ env.IMAGE_TAG }}
+
+      # Step 10: Set up Kubectl with Kubeconfig
+      - name: Update kube config
+        run: aws eks update-kubeconfig --name vk8cluster
+
+      # Step 11: Apply Kubernetes manifests for Backend
+      - name: Deploy Backend to Kubernetes
+        run: |
+          kubectl apply -f auth-app-backend/k8-manifests/deployment.yaml -n midterm
+          kubectl apply -f auth-app-backend/k8-manifests/service.yaml -n midterm
+
+      # Step 12: Apply Kubernetes manifests for Frontend
+      - name: Deploy Frontend to Kubernetes
+        run: |
+          kubectl apply -f auth-app-frontend/k8-manifests/deployment.yaml -n midterm
+          kubectl apply -f auth-app-frontend/k8-manifests/service.yaml -n midterm
