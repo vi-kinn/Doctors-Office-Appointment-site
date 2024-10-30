@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  labels:
+    app: frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+        - name: frontend
+          image: 474668414952.dkr.ecr.us-east-1.amazonaws.com/doctor-office-frontend
+          resources:
+            requests:
+              cpu: "0.5"             # Request 1 CPU core
+              memory: "350Mi"
+            limits:
+              cpu: "1"             # Limit to 1 vCPU cores
+              memory: "450Mi"        # Limit to 400 MI of memory
+          ports:
+          - containerPort: 3000
+          
+             
