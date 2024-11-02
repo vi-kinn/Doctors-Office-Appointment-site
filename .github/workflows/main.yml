@@ -67,10 +67,10 @@ jobs:
       # Step 8: Update Backend and Frontend Deployments in EKS
       - name: Update Backend Deployment with New Image
         run: |
-          kubectl set image deployment/backend-deployment backend-container=$ECR_REGISTRY/${{ env.BACKEND_REPO_NAME }}:${{ env.IMAGE_TAG }} -n $NAMESPACE
-          kubectl rollout status deployment/backend-deployment -n $NAMESPACE
+          kubectl set image deployment/backend backend=$ECR_REGISTRY/${{ env.BACKEND_REPO_NAME }}:${{ env.IMAGE_TAG }} -n $NAMESPACE
+          kubectl rollout status deployment/backend -n $NAMESPACE
 
       - name: Update Frontend Deployment with New Image
         run: |
-          kubectl set image deployment/frontend-deployment frontend-container=$ECR_REGISTRY/${{ env.FRONTEND_REPO_NAME }}:${{ env.IMAGE_TAG }} -n $NAMESPACE
-          kubectl rollout status deployment/frontend-deployment -n $NAMESPACE
+          kubectl set image deployment/frontend frontend=$ECR_REGISTRY/${{ env.FRONTEND_REPO_NAME }}:${{ env.IMAGE_TAG }} -n $NAMESPACE
+          kubectl rollout status deployment/frontend -n $NAMESPACE
