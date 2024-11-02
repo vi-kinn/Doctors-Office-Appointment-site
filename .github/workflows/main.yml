@@ -15,13 +15,18 @@ jobs:
       BACKEND_PATH: "./doctor-office-backend"
       FRONTEND_PATH: "./doctor-office-frontend"
       IMAGE_TAG: "latest"
-      NAMESPACE: "midterm"  # Set your namespace here if needed
 
     steps:
       # Step 1: Check out the code
       - name: Checkout code
         uses: actions/checkout@v2
 
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v2.0
+        with:
+          version: 'v1.24.0' # default is latest stable
+        id: install
+  
       # Step 2: Configure AWS credentials
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
@@ -36,39 +41,43 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v1
         with:
           region: ${{ secrets.AWS_REGION }}
+          access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
-      # Step 4: Build Backend Docker Image
+      # Step 4: Build Backend Docker Image with a simple name
       - name: Build Backend Docker image
-        run: docker build -t ${{ env.BACKEND_REPO_NAME }} ${{ env.BACKEND_PATH }}
+        run: |
+          docker build -t ${{ env.BACKEND_REPO_NAME }} ${{ env.BACKEND_PATH }}
 
-      # Step 5: Tag and Push Backend Docker Image
-      - name: Tag and Push Backend Docker image
+      # Step 5: Tag the Backend Docker Image with ECR URL
+      - name: Tag Backend Docker image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         run: |
           docker tag ${{ env.BACKEND_REPO_NAME }} $ECR_REGISTRY/${{ env.BACKEND_REPO_NAME }}:${{ env.IMAGE_TAG }}
+
+      # Step 6: Push the Backend Docker Image to ECR
+      - name: Push Backend Docker image to ECR
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        run: |
           docker push $ECR_REGISTRY/${{ env.BACKEND_REPO_NAME }}:${{ env.IMAGE_TAG }}
 
-      # Step 6: Build, Tag, and Push Frontend Docker Image
+      # Step 7: Build Frontend Docker Image with a simple name
       - name: Build Frontend Docker image
-        run: docker build -t ${{ env.FRONTEND_REPO_NAME }} ${{ env.FRONTEND_PATH }}
-        
-      - name: Tag and Push Frontend Docker image
+        run: |
+          docker build -t ${{ env.FRONTEND_REPO_NAME }} ${{ env.FRONTEND_PATH }}
+
+      # Step 8: Tag the Frontend Docker Image with ECR URL
+      - name: Tag Frontend Docker image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         run: |
           docker tag ${{ env.FRONTEND_REPO_NAME }} $ECR_REGISTRY/${{ env.FRONTEND_REPO_NAME }}:${{ env.IMAGE_TAG }}
+
+      # Step 9: Push the Frontend Docker Image to ECR
+      - name: Push Frontend Docker image to ECR
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        run: |
           docker push $ECR_REGISTRY/${{ env.FRONTEND_REPO_NAME }}:${{ env.IMAGE_TAG }}
-
-      # Step 7: Update kube config to connect to EKS
-      - name: Update kube config
-        run: aws eks update-kubeconfig --name group8
-
-      # Step 8: Update Backend and Frontend Deployments in EKS
-      - name: Update Backend Deployment with New Image
-        run: |
-          kubectl rollout restart deployment backend -n $NAMESPACE  # Force restart
-
-      - name: Update Frontend Deployment with New Image
-        run: |
-          kubectl rollout restart deployment frontend -n $NAMESPACE  # Force restart
