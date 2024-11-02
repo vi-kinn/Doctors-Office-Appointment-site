@@ -1,7 +1,7 @@
-name: CI/CD Pipeline for Frontend and Backend
+name: Deploy to Amazon ECR
 
 on:
- workflow_dispatch:
+  workflow_dispatch:
 
 jobs:
   deploy:
@@ -9,50 +9,43 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
 
-    env:
-      BACKEND_REPO_NAME: "doctor-office-backend"
-      FRONTEND_REPO_NAME: "doctor-office-frontend"
-      IMAGE_TAG: "latest"
-
     steps:
-      # Step 1: Check out the code
-      - name: Checkout code
-        uses: actions/checkout@v2
+      - name: Checkout
+        uses: actions/checkout@v4
 
-    
-      # Step 2: Configure AWS credentials
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
+        uses: aws-actions/configure-aws-credentials@0e613a0980cbf65ed5b322eb7a1e075d28913a83
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
-          
-      # Step 3: Log in to Amazon ECR
-      - name: Log in to Amazon ECR
+
+      - name: Login to Amazon ECR
         id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
-        with:
-          region: ${{ secrets.AWS_REGION }}
-
-      # Step 4: Verify ECR Registry Output
-      - name: Debug ECR Registry
-        run: echo "ECR Registry:${{ steps.login-ecr.outputs.registry }}"
-
-      # Step 5: Build, Tag, and Push Backend Image
-      - name: Build and Push Backend Docker image
+        uses: aws-actions/amazon-ecr-login@62f4f872db3836360b72999f4b87f1ff13310f3a
+        
+      - name: Build, tag, and push backend image to Amazon ECR
+        id: build-image-backend
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: "latest"
+          ECR_REPOSITORY_BACKEND: "doctor-office-backend"
         run: |
-          docker build -t ${{ env.BACKEND_REPO_NAME }}:${{ env.IMAGE_TAG }} .
-          docker tag ${{ env.BACKEND_REPO_NAME }} ${{ steps.login-ecr.outputs.registry }}/${{ env.BACKEND_REPO_NAME }}:${{ env.IMAGE_TAG }}
-          docker push ${{ steps.login-ecr.outputs.registry }}/${{ env.BACKEND_REPO_NAME }}:${{ env.IMAGE_TAG }}
-
-      # Step 6: Build, Tag, and Push Frontend Image
-      - name: Build and Push Frontend Docker image
+          # Navigate to backend folder, build and push the backend image
+          cd doctor-office-backend
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY_BACKEND:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY_BACKEND:$IMAGE_TAG
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY_BACKEND:$IMAGE_TAG" >> $GITHUB_OUTPUT
+          
+      - name: Build, tag, and push frontend image to Amazon ECR
+        id: build-image-frontend
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: "latest"
+          ECR_REPOSITORY_FRONTEND: "doctor-office-frontend"
         run: |
-          docker build -t ${{ env.FRONTEND_REPO_NAME }}:${{ env.IMAGE_TAG }} .
-          docker tag ${{ env.FRONTEND_REPO_NAME }} ${{ steps.login-ecr.outputs.registry }}/${{ env.FRONTEND_REPO_NAME }}:${{ env.IMAGE_TAG }}
-          docker push ${{ steps.login-ecr.outputs.registry }}/${{ env.FRONTEND_REPO_NAME }}:${{ env.IMAGE_TAG }}
-
-      # Step 7: Update kube config to connect to EKS
-      - name: Update kube config
-        run: aws eks update-kubeconfig --name group8
+          # Navigate to frontend folder, build and push the frontend image
+          cd doctor-office-frontend
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY_FRONTEND:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY_FRONTEND:$IMAGE_TAG
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY_FRONTEND:$IMAGE_TAG" >> $GITHUB_OUTPUT
