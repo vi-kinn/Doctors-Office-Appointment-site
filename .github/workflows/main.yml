@@ -21,12 +21,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Install kubectl
-        uses: azure/setup-kubectl@v2.0
-        with:
-          version: 'v1.24.0'  # default is latest stable
-        id: install
-  
+    
       # Step 2: Configure AWS credentials
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
@@ -49,14 +44,14 @@ jobs:
       # Step 5: Build, Tag, and Push Backend Image
       - name: Build and Push Backend Docker image
         run: |
-          docker build -t ${{ env.BACKEND_REPO_NAME }} ${{ env.BACKEND_PATH }}
+          docker build -t ${{ env.BACKEND_REPO_NAME }}:${{ env.IMAGE_TAG }} ${{ env.BACKEND_PATH }}
           docker tag ${{ env.BACKEND_REPO_NAME }} ${{ steps.login-ecr.outputs.registry }}/${{ env.BACKEND_REPO_NAME }}:${{ env.IMAGE_TAG }}
           docker push ${{ steps.login-ecr.outputs.registry }}/${{ env.BACKEND_REPO_NAME }}:${{ env.IMAGE_TAG }}
 
       # Step 6: Build, Tag, and Push Frontend Image
       - name: Build and Push Frontend Docker image
         run: |
-          docker build -t ${{ env.FRONTEND_REPO_NAME }} ${{ env.FRONTEND_PATH }}
+          docker build -t ${{ env.FRONTEND_REPO_NAME }}:${{ env.IMAGE_TAG }} ${{ env.FRONTEND_PATH }}
           docker tag ${{ env.FRONTEND_REPO_NAME }} ${{ steps.login-ecr.outputs.registry }}/${{ env.FRONTEND_REPO_NAME }}:${{ env.IMAGE_TAG }}
           docker push ${{ steps.login-ecr.outputs.registry }}/${{ env.FRONTEND_REPO_NAME }}:${{ env.IMAGE_TAG }}
 
