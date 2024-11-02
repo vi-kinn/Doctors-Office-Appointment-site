@@ -68,9 +68,11 @@ jobs:
       - name: Update Backend Deployment with New Image
         run: |
           kubectl set image deployment/backend backend=$ECR_REGISTRY/${{ env.BACKEND_REPO_NAME }}:${{ env.IMAGE_TAG }} -n $NAMESPACE
-          kubectl rollout status deployment/backend -n $NAMESPACE
+          kubectl rollout restart backend -n $NAMESPACE  # Force restart
+          kubectl rollout status backend -n $NAMESPACE
 
       - name: Update Frontend Deployment with New Image
         run: |
           kubectl set image deployment/frontend frontend=$ECR_REGISTRY/${{ env.FRONTEND_REPO_NAME }}:${{ env.IMAGE_TAG }} -n $NAMESPACE
-          kubectl rollout status deployment/frontend -n $NAMESPACE
+          kubectl rollout restart frontend -n $NAMESPACE  # Force restart
+          kubectl rollout status frontend -n $NAMESPACE
