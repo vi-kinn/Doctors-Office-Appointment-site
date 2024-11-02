@@ -1,19 +1,17 @@
 name: CI/CD Pipeline for Frontend and Backend
 
 on:
-  push:
-    branches:
-      - main  # Trigger on push to the main branch
+ workflow_dispatch:
 
 jobs:
-  build-and-push:
+  deploy:
+    name: Deploy
     runs-on: ubuntu-latest
+    environment: production
 
     env:
       BACKEND_REPO_NAME: "doctor-office-backend"
       FRONTEND_REPO_NAME: "doctor-office-frontend"
-      BACKEND_PATH: "./doctor-office-backend"
-      FRONTEND_PATH: "./doctor-office-frontend"
       IMAGE_TAG: "latest"
 
     steps:
@@ -44,14 +42,14 @@ jobs:
       # Step 5: Build, Tag, and Push Backend Image
       - name: Build and Push Backend Docker image
         run: |
-          docker build -t ${{ env.BACKEND_REPO_NAME }}:${{ env.IMAGE_TAG }} ${{ env.BACKEND_PATH }}
+          docker build -t ${{ env.BACKEND_REPO_NAME }}:${{ env.IMAGE_TAG }} .
           docker tag ${{ env.BACKEND_REPO_NAME }} ${{ steps.login-ecr.outputs.registry }}/${{ env.BACKEND_REPO_NAME }}:${{ env.IMAGE_TAG }}
           docker push ${{ steps.login-ecr.outputs.registry }}/${{ env.BACKEND_REPO_NAME }}:${{ env.IMAGE_TAG }}
 
       # Step 6: Build, Tag, and Push Frontend Image
       - name: Build and Push Frontend Docker image
         run: |
-          docker build -t ${{ env.FRONTEND_REPO_NAME }}:${{ env.IMAGE_TAG }} ${{ env.FRONTEND_PATH }}
+          docker build -t ${{ env.FRONTEND_REPO_NAME }}:${{ env.IMAGE_TAG }} .
           docker tag ${{ env.FRONTEND_REPO_NAME }} ${{ steps.login-ecr.outputs.registry }}/${{ env.FRONTEND_REPO_NAME }}:${{ env.IMAGE_TAG }}
           docker push ${{ steps.login-ecr.outputs.registry }}/${{ env.FRONTEND_REPO_NAME }}:${{ env.IMAGE_TAG }}
 
