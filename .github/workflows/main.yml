@@ -1,41 +1,61 @@
-name: Docker Build and Push to ECR
-
+name: CI/CD Pipeline
 on:
   push:
-    branches: [ main ]
-
+    branches:
+      - main
+env:
+  AWS_REGION: us-east-1
+  ECR_REGISTRY: 156041403412.dkr.ecr.us-east-1.amazonaws.com
+  ECR_REPOSITORY_1: midterm/backend
+  ECR_REPOSITORY_2: midterm/frontend
+  CLUSTER_NAME: midterm
 jobs:
-  build-and-push:
+  deploy:
     runs-on: ubuntu-latest
-    
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+
     steps:
-    - uses: actions/checkout@v2
-    
+    - name: Checkout code
+      uses: actions/checkout@v3
+      
     - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v1
+      uses: aws-actions/configure-aws-credentials@v2
       with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ secrets.AWS_REGION }}
+        role-to-assume: arn:aws:iam::156041403412:role/github-actions-role
+        aws-region: ${{ env.AWS_REGION }}
 
+    - name: Update kube config
+      run: |
+        aws eks update-kubeconfig --name ${{ env.CLUSTER_NAME }} --region ${{ env.AWS_REGION }}
+    
     - name: Login to Amazon ECR
-      id: login-ecr
-      uses: aws-actions/amazon-ecr-login@v1
-
-    - name: Build, tag, and push backend image to Amazon ECR
-      env:
-        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-        ECR_REPOSITORY: doctor-office-backend
-        IMAGE_TAG: ${{ github.sha }}
       run: |
-        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG ./doctor-office-backend
-        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+        aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY
 
-    - name: Build, tag, and push frontend image to Amazon ECR
-      env:
-        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-        ECR_REPOSITORY: doctor-office-frontend
-        IMAGE_TAG: ${{ github.sha }}
+    # Build and push Docker images for Backend
+    - name: Build Docker image for Backend
       run: |
-        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG ./doctor-office-frontend
-        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+        docker build -t $ECR_REPOSITORY_1:latest -f doctor-office-backend/Dockerfile doctor-office-backend/
+    - name: Tag and push Docker image for Backend
+      run: |
+        docker tag $ECR_REPOSITORY_1:latest $ECR_REGISTRY/$ECR_REPOSITORY_1:latest
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY_1:latest
+
+    # Build and push Docker image for Frontend
+    - name: Build Docker image for Frontend
+      run: |
+        docker build -t $ECR_REPOSITORY_2:latest -f doctor-office-frontend/Dockerfile doctor-office-frontend/
+    - name: Tag and push Docker image for Frontend
+      run: |
+        docker tag $ECR_REPOSITORY_2:latest $ECR_REGISTRY/$ECR_REPOSITORY_2:latest
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY_2:latest
+
+    - name: Update EKS Deployment for Backend
+      run: |
+        kubectl set image deployment/backend backend=$ECR_REGISTRY/$ECR_REPOSITORY_1:latest
+    - name: Update EKS Deployment for Frontend
+      run: |
+        kubectl set image deployment/frontend frontend=$ECR_REGISTRY/$ECR_REPOSITORY_2:latest
