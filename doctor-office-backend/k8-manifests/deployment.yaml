@@ -19,11 +19,11 @@ spec:
           image: 474668414952.dkr.ecr.us-east-1.amazonaws.com/doctor-office-backend
           resources:
             requests:
-              cpu: "0.5"            
-              memory: "350Mi"
+              cpu: "0.3"            
+              memory: "200Mi"
             limits:
-              cpu: "1"            
-              memory: "450Mi"        
+              cpu: "0.7"            
+              memory: "200Mi"        
           ports:
           - containerPort: 5000
          

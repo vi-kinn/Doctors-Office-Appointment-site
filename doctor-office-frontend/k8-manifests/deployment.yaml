@@ -19,11 +19,11 @@ spec:
           image: 474668414952.dkr.ecr.us-east-1.amazonaws.com/doctor-office-frontend
           resources:
             requests:
-              cpu: "0.5"             # Request 1 CPU core
-              memory: "350Mi"
+              cpu: "0.3"            
+              memory: "200Mi"
             limits:
-              cpu: "1"             # Limit to 1 vCPU cores
-              memory: "450Mi"        # Limit to 400 MI of memory
+              cpu: "0.7"            
+              memory: "200Mi" 
           ports:
           - containerPort: 3000
           
