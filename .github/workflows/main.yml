@@ -1,8 +1,8 @@
 name: Docker Build and Push to ECR
 
 on:
-  repository_dispatch:
-    types: [apply_action]
+  push:
+    branches: [ main ]
 
 jobs:
   build-and-push:
