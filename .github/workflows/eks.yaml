@@ -6,7 +6,7 @@ on:
 
 env:
   AWS_REGION: ${{ secrets.AWS_REGION }}
-  EKS_CLUSTER_NAME: gropu8
+  EKS_CLUSTER_NAME: group8
 
 jobs:
   build-push-deploy:
