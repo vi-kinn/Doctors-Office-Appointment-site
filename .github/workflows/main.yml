@@ -8,7 +8,7 @@ env:
   ECR_REGISTRY: 156041403412.dkr.ecr.us-east-1.amazonaws.com
   ECR_REPOSITORY_1: midterm/backend
   ECR_REPOSITORY_2: midterm/frontend
-  CLUSTER_NAME: midterm
+  CLUSTER_NAME: group8
 jobs:
   deploy:
     runs-on: ubuntu-latest
